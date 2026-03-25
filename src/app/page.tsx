@@ -36,6 +36,7 @@ export default function PanelPage() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [loadingMensajes, setLoadingMensajes] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'todas' | 'pendiente' | 'en_curso' | 'completada'>('todas');
   const router = useRouter();
 
@@ -117,6 +118,29 @@ export default function PanelPage() {
   const closeDetail = () => {
     setSelected(null);
     setMensajes([]);
+  };
+
+  const deleteSesion = async (sesionId: string, empresa: string) => {
+    if (!confirm(`Eliminar la sesion de "${empresa}" y todos sus mensajes? Esta accion no se puede deshacer.`)) {
+      return;
+    }
+    setDeleting(sesionId);
+    try {
+      const res = await fetch(`/api/sesiones?id=${sesionId}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (selected?.id === sesionId) {
+          closeDetail();
+        }
+        await fetchSesiones();
+      } else {
+        alert('Error al eliminar la sesion');
+      }
+    } catch (err) {
+      console.error('Error deleting sesion:', err);
+      alert('Error al eliminar la sesion');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const filtered = filter === 'todas'
@@ -289,6 +313,26 @@ export default function PanelPage() {
                               </svg>
                             </button>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSesion(s.id, s.empresa);
+                            }}
+                            disabled={deleting === s.id}
+                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar sesion"
+                          >
+                            {deleting === s.id ? (
+                              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
                       </div>
 
